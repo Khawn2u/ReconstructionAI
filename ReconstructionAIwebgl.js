@@ -346,6 +346,10 @@ var ReconstructionAI = function(opts){
             }
             this.activations.reverse();
         }
+        this.setInput = function(inpv) {
+            this.gl.bindTexture(this.gl.TEXTURE_2D,this.inputTexture);
+            this.gl.texImage2D(this.gl.TEXTURE_2D,0,this.gl.RGB,this.layerResolutions[0][0],this.layerResolutions[0][1],0,this.gl.RGB,this.gl.UNSIGNED_BYTE,inpv);
+        }
         this.trainGradientWithCurrentActivations = function(grad) {
             this.DataSetSize++;
             this.gl.bindFramebuffer(this.gl.FRAMEBUFFER,this.WaBframeBuffer);
@@ -671,7 +675,7 @@ var ReconstructionAI = function(opts){
                 highp ivec2 xy = ivec2(gl_FragCoord.x-0.5,0);
                 highp float val = texelFetch(uOutput,xy,0).x;
 				//grad = vec4(val*uMult);
-                grad = vec4(val*uMult*activationFunctionDerivitive(val));
+                grad = vec4(val*uMult);
             }
         `);
         this.backpropUnflatten = createProgram(`#version 300 es
@@ -764,7 +768,7 @@ var ReconstructionAI = function(opts){
             this.gl.texImage2D(this.gl.TEXTURE_2D, 0, self.RF, this.extraInp, 1, 0, this.gl.RED, self.FLOAT, null);
             var lyrz = this.layers;
             var maxWid = this.layers.reduce(function(a,b) {return Math.max(a,b)});
-            this.WaBorigHeights = this.layers.slice(1).map(function(x,xi){return x+lyrz[xi]+1;});
+            this.WaBorigHeights = this.layers.slice(0,-1).map(function(x,xi){return x+lyrz[xi]+1;});
             this.WaBorigResolutions = this.WaBorigHeights.map(function(x,xi){return [lyrz[xi+1],x];});
             this.WaBheights = this.WaBorigHeights.map(function(x){return Math.ceil(x/4)});
             this.WaBresolutions = this.WaBorigResolutions.map(function(x){return [x[0],Math.ceil(x[1]/4)];});
@@ -1079,24 +1083,11 @@ var ReconstructionAI = function(opts){
             this.gl.copyTexImage2D(this.gl.TEXTURE_2D, 0, self.RGBF, 0, 0, resol[0], resol[1], 0);
             return this.unflattenTexture;
         }
-		this.ReinforceTrainWithGradientOut = function(inpw, exinp, PositiveEnforcement) {
-            this.cycle(inpw,exinp);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.targetTexture);
-            this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.R32F, this.outputSize, 1, 0, this.gl.RED, this.gl.FLOAT, outw);
+		this.ReinforceTrainWithGradientOut = function(inpw, PositiveEnforcement) {
+            // this.cycle(inpw,exinp);
 			this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.frameBuffer);
 			this.gl.scissor(0,0,this.outputSize,1);
             this.gl.viewport(0,0,this.outputSize,1);
-			this.gl.useProgram(this.calcAddLoss);
-			this.gl.activeTexture(this.gl.TEXTURE0);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.targetTexture);
-            this.gl.activeTexture(this.gl.TEXTURE1);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.activations[1][this.WaB.length-1]);
-			this.gl.activeTexture(this.gl.TEXTURE2);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.lossTexture);
-			this.gl.drawElements(this.gl.TRIANGLES, 6, this.gl.UNSIGNED_SHORT, 0);
-			this.gl.readBuffer(this.gl.COLOR_ATTACHMENT0);
-			this.gl.bindTexture(this.gl.TEXTURE_2D, this.lossTexture);
-			this.gl.copyTexImage2D(this.gl.TEXTURE_2D, 0, self.RF, 0, 0, this.outputSize, 1, 0);
 			
             this.gl.useProgram(this.findReifDelta);
 			this.gl.uniform1f(this.ReinforcementUiniform, PositiveEnforcement);
@@ -1158,7 +1149,7 @@ var ReconstructionAI = function(opts){
                 this.gl.copyTexImage2D(this.gl.TEXTURE_2D, 0, self.RGBAF, 0, 0, resol[0], resol[1], 0);
                 this.gl.bindTexture(this.gl.TEXTURE_2D, this.WaBdelta[i]);
                 this.gl.texImage2D(this.gl.TEXTURE_2D, 0, self.RGBAF, resol[0], resol[1], 0, this.gl.RGBA, self.FLOAT, null);
-				//this.gl.uniform1f(this.LerningRateUniform, lr/(this.DataSetSize*Math.sqrt(this.WaBorigHeights[i])));
+				// this.gl.uniform1f(this.LerningRateUniform, lr/(this.DataSetSize*Math.sqrt(this.WaBorigHeights[i])));
             }
 			var ret = undefined;
 			if (returnloss) {
@@ -1241,18 +1232,9 @@ var ReconstructionAI = function(opts){
             return {Output:AIout,loss:loss};
         }
     }
-	this.ReinforcementTrain = function(inpw, exinp,PositiveEnforcement,returnloss) {
-        this.rcnn.cycle(inpw);
-        var grad = this.rnn.ReinforceTrainWithGradientOut(this.rcnn.activations[1][this.rcnn.activations[1].length-1],exinp,PositiveEnforcement);
+	this.ReinforcementTrain = function(PositiveEnforcement) {
+        var grad = this.rnn.ReinforceTrainWithGradientOut(this.rcnn.activations[1][this.rcnn.activations[1].length-1],PositiveEnforcement);
         this.rcnn.trainGradientWithCurrentActivations(grad);
-        if (returnloss) {
-            var AIout = this.rnn.textureToArray1D(this.rnn.activations[1][this.rnn.layers.length-2],[this.rnn.layers[this.rnn.layers.length-1],1]);
-            // var loss = AIout.map(function(x,i) {x -= outw[i]; return x*x;}).reduce(function(a,b) {return a+b;})/(this.rnn.outputSize*2);
-            // var loss = AIout.map(function(x,i) {x -= outw[i]; return Math.abs(x);}).reduce(function(a,b) {return a+b;})/(this.rnn.outputSize*2);
-            var loss = Math.sqrt(AIout.map(function(x,i) {x -= outw[i]; return x*x;}).reduce(function(a,b) {return a+b;})/(this.rnn.outputSize*2));
-            // return {Output:AIout,Loss:loss};
-            return {Output:AIout,loss:loss};
-        }
     }
     this.resetZeros = function() {
         this.rnn.resetZeros();
