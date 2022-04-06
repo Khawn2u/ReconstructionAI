@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- <script src="https://unpkg.com/gpu.js@2.11.4/dist/gpu-browser.min.js"></script> -->
+		<script src="../pako.js"></script>
+		<script src="../KhawnEngine Experimental.js"></script>
+        <script src="../ReconstructionAIwebgl.js"></script>
+		<script src="../GraphHander.js"></script>
+        <style>
+            body{
+                margin-top: 0px; 
+                margin-bottom: 0px; 
+                margin-left: 0px; 
+                margin-right: 0px;
+                padding: 0;
+                color: black; 
+                font-size: 10pt; 
+                font-family: "Trebuchet MS", sans-serif;
+                background-color: #aaaaaa;
+                font-size: 2vw;
+            }
+            #start {
+                background-color: green;
+                width: 25vw;
+                height: 10vw;
+                border-radius: 10px;
+                border-width: 10px;
+                border-color: green;
+                color: white;
+                font-size: 6vw;
+            }
+            #stop {
+                background-color: red;
+                width: 25vw;
+                height: 10vw;
+                border-radius: 10px;
+                border-width: 10px;
+                border-color: red;
+                color: white;
+                font-size: 6vw;
+            }
+            #save {
+                background-color: grey;
+                width: 12vw;
+                height: 5vw;
+                border-radius: 10px;
+                border-width: 10px;
+                border-color: grey;
+                color: white;
+                font-size: 3vw;
+            }
+            #loadButton {
+                background-color: grey;
+                width: 12vw;
+                height: 5vw;
+                border-radius: 10px;
+                border-width: 10px;
+                border-color: grey;
+                color: white;
+                font-size: 3vw;
+            }
+            input[type=file] {
+                font-size: 2vw;
+            }
+        </style>
+    </head>
+    <body bgcolor="#eeeeee">
+        <center>
+            <font style="font-size:100px;">--Reconstruction AI--</font><br>
+            <canvas width="672" height="400" id="graph0"></canvas> <canvas width="672" height="400" id="graph1"></canvas><br>
+			<canvas width="96" height="96" id="dispgraph" style="width:640px;"></canvas>
+        </center><br><br><br><br><br><br><br><br><br><br><br><br><br>
+		<script>
+		</script>
+        <script>
+			var Engine = new KhawnEngine();
+			//var AI = new ReconstructionAI({Vision:{VisionResolution:[320,180],layerKernelSizes:[[20,20]],CanTrain:true},Brain:{layers:[3],ExtraInputs:3,CanTrain:true},Float16:true});
+			var AI = new ReconstructionAI({Vision:{VisionResolution:[96,96],layerKernelSizes:[[4,4]],CanTrain:true},Brain:{layers:[12,1],ExtraInputs:1,CanTrain:true},Float16:false});
+			
+			var Graph1 = new GraphHandler(document.getElementById("graph1"));
+			Graph1.calculateSmoothGrapthLookup(8);
+            //var Graph1 = new GraphHandler(document.getElementById("graph1"));
+			//Graph1.calculateSmoothGrapthLookup(8);
+			var canvas = document.getElementById("graph0");
+			var ctx = canvas.getContext("2d");
+			var Dispcanvas = document.getElementById("dispgraph");
+			var Camera = Engine.CreateCamera(Dispcanvas,[192,192],90,0.2,false);
+			Camera.Components[0].PostProcessing = false;
+			Engine.Root.addChild(Camera);
+			Camera.SetPosition([0,2,0])
+			//var Floor = Engine.CreateMeshObject(Engine.DefaultCubeRoomMesh,[Engine.DiffuseMaterial,Engine.DiffuseMaterial]);
+			// var Floor = Engine.CreateMeshObject(Engine.DefaultCubeRoomMesh,[Engine.DefaultMaterial,Engine.DefaultMaterial]);
+			var Floor = Engine.CreateMeshObject(Engine.DefaultFlipedCubeMesh,[Engine.DebugMaterial]);
+			Floor.Name = "Room";
+			Floor.SetScale(4);
+			Floor.SetPosition([0,2,0])
+			Engine.Root.addChild(Floor);
+			var Lights = new Engine.Object();
+			Lights.Name = "Lights";
+			for (var q=0; q<0; q++) {
+				var Light = new Engine.Object();
+				Light.Name = "Light" + q;
+				Light.AddComponent(new Engine.Components.PointLight(Engine.Hue(Math.random())));
+				//Light.AddComponent(new Engine.Components.PointLight([1,1,1]));
+				Light.SetPosition([(Math.random()*4)-2,Math.random()*4,(Math.random()*4)-2]);
+				Lights.addChild(Light);
+			}
+			Engine.Root.addChild(Lights);
+			var Index = 0;
+			var avgAcc = [];
+			var T = 0;
+			function TrainTest() {
+				if (Index < 128) {
+					//var q = Engine.randomQuaternion().Slerp(Engine.IdentityQuaternion,0.95);
+					var angle0 = new Engine.Angle((Math.random()*90)-45);
+					T = (T+0.1)%(Math.PI*2);
+					//var angle0 = new Engine.Angle(Math.sin(T)*45);
+					//var angle = Engine.randomAngle();
+					//var angle0 = new Engine.Angle(0);
+					var q = Engine.axsisAngle(angle0,new Engine.Vector3([0,1,0]));
+					var m = q.ToMatrix();
+					//Camera.setMatrix(m.Multiply(Camera.transform.matrix));
+					//Camera.setMatrix(Camera.transform.matrix.Multiply(m));
+					Camera.setMatrix(m);
+					//q = Camera.transform.matrix.ToQuaternion();
+					Engine.Update();
+					Engine.Render();
+					//var data = q.value[3] < 0 ? new Float32Array([-q.value[0],-q.value[1],-q.value[2]]) : new Float32Array([q.value[0],q.value[1],q.value[2]]);
+					//var v = new Engine.Vector3([0,0,1]);
+					//var data = new Float32Array(m.Multiply(v).Subtract(v).value)
+					//var data = new Float32Array(2).fill(angle.degrees());
+					var data = new Float32Array([(angle0.degrees()/90)]);
+					//var data = new Float32Array([0]);
+					var res = AI.train(Dispcanvas,data,data,false);
+					//console.log(res.Output[0]);
+					//ctx.fillRect(0,0,672,400);
+					//AI.drawTexture(AI.rnn.unflattenTexture,[12,12]);
+					//AI.drawTexture(AI.rcnn.activations[1][0],[12,12]);
+					//AI.drawTexture(AI.rnn.WaB[0],AI.rnn.WaBresolutions[0]);
+					//ctx.drawImage(AI.canvas,0,0,canvas.width,canvas.height);
+					Index++;
+				} else {
+					var res = AI.finishEpoch(0.1,true);
+					Graph1.addValueAndGrapth(1-res);
+					Index = 0;
+				}
+			}
+			function cycleAI() {
+				Engine.Update();
+				Engine.Render();
+				var data = new Float32Array(1);
+				var result = AI.cycle(Dispcanvas,data,true);
+				//Camera.setMatrix(new Engine.Quaternion([result[0],result[1],result[2],result[3]]).Normalize().toMatrix());
+			}
+		setInterval(TrainTest,0);
+        </script>
+    </body>
+</html>
