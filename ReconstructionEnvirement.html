@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>ReconstructionAI</title>
+        <script src="./pako.js"></script>
+        <script src="./KhawnEngine Experimental.js"></script>
+		<script src="./ReconstructionAIwebgl.js"></script>
+		<script src="./ReconstructionAI Interface.js"></script>
+		<script src="./GraphHander.js"></script>
+        <style>
+			body {
+				margin: 0%;
+				color: white;
+				overflow-x: hidden;
+				overflow-y: hidden;
+			}
+            canvas {
+                width: 50vw;
+            }
+			table {
+				border: 10px;
+				border-style: solid;
+				width: 100vw;
+				height: 100vh;
+				border-color: #404040;
+				margin: 0%;
+				padding: 0%;
+			}
+			td {
+				margin: 0%;
+				padding: 0%;
+				border: 2px;
+				border-style: solid;
+				border-color: #404040;
+			}
+			tr {
+				margin: 0%;
+				padding: 0%;
+			}
+			.assets {
+				height: 50%;
+			}
+			.panel {
+				line-break:none;
+				height: 100%;
+				overflow: scroll;
+				overflow-x: hidden;
+				overflow-y: scroll;
+			}
+			.title {
+				width: 0%;
+				height: 5%;
+			}
+			.asset {
+				display: inline-block;
+				background-color: white;
+				width: 5vw;
+				height: 5vw;
+				margin: 0.2vw;
+				padding: 0vw;
+				text-align: center;
+				vertical-align: middle;
+				color: black;
+				border-radius: 4px;
+				border-color: black;
+				border-width: 0.5vh;
+				border-style: solid;
+				user-select: none;
+				cursor: pointer;
+			}
+			.Import {
+				width: 15vw;
+			}
+			#contextmenu {
+				display: block;
+				position: fixed;
+				width: 10vw;
+				background-color: black;
+				top: 50px;
+				color: black;
+				text-align: center;
+			}
+			.contextmenubutton {
+				width: 99%;
+				border-radius: 0%;
+				border-width: 0px;
+			}
+			.contextmenubutton:hover {
+				background-color: lightgray;
+				color: white;
+			}
+			#blurMenu {
+				display: block;
+				position: fixed;
+				width: 100vw;
+				height: 100vh;
+				background-color: #000000ca;
+				color: black;
+				text-align: center;
+			}
+			#createNewMenu {
+				display: block;
+				position: fixed;
+				width: 60vw;
+				height: 60vh;
+				background-color: #404040;
+				top: 20%;
+				left: 20%;
+				color: black;
+				text-align: center;
+				border-radius: 5vw;
+				border-style: solid;
+				border-width: 1vw;
+				border-color: black;
+				color: white;
+			}
+			.bigButton {
+				font-size: 10vh;
+			}
+			.hidden {
+				display: none;
+			}
+			.Ico {
+				height: 2vw;
+				width: 2vw;
+			}
+			h1 {
+				text-align: center;
+			}
+			.assetTitle {
+				height: 5vh;
+				width: 30vw;
+				font-size: 5vh;
+				text-align: center;
+			}
+			input[type="number"] {
+				width: 4vw;
+			}
+			select {
+				font-size: 4vh;
+				width:20vw;
+			}
+			.dropdown {
+				left: 5vw;
+				user-select: none;
+				padding-left: 0.25vw;
+				margin-top: 1px;
+				width: 100%;
+			}
+			.dropdowntitle {
+				background-color: #404040;
+			}
+			.componet {
+				background-color: #202020;
+			}
+			.sidescroll {
+				white-space: nowrap;
+				width: 30vw;
+				height: 20vh;
+				overflow-x: scroll;
+				overflow-y: hidden;
+				background-color: #000000;
+			}
+			.assetFeild {
+				height: 8vw;
+				width: 8vw;
+				background-color: #202020;
+				margin: 0.5vw;
+				text-align: center;
+				font-size: 1vw;
+			}
+			.valueFeild {
+				width: 8vw;
+				background-color: #202020;
+				margin: 0.5vw;
+				padding: 0.5vw;
+				text-align: center;
+				font-size: 1vw;
+			}
+        </style>
+    </head>
+    <body bgcolor="#303030">
+		<div id="contextmenu" style="display: none;">
+			<div>
+				<input type="button" value="Create New" class="contextmenubutton" onclick="createNew();">
+				<input type="button" value="Delete" class="contextmenubutton" onclick="Delete();">
+				<input type="button" value="Copy" class="contextmenubutton">
+				<input type="button" value="Paste" class="contextmenubutton">
+			</div>
+			<div style="display: none;">
+				<input type="button" value="Material" class="contextmenubutton" onclick="newMaterial();">
+			</div>
+		</div>
+		<table>
+			<tr>
+				<td class="Import">
+					<input type="file" id="Import" multiple>
+				</td>
+				<td class="title">
+					<center>My Untitled Project</center>
+				</td>
+				<td>
+					<input type="button" value="Run AI" onclick="AIrunning=!AIrunning;">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<div id="heigerarchy" class="panel"></div>
+				</td>
+				<td>
+					<canvas id="viewport" width="1366" height="768"></canvas>
+				</td>
+				<td>
+					<div id="properites" class="panel"></div>
+				</td>
+			</tr>
+			<tr style="height: 100%;">
+				<td>
+					
+				</td>
+				<td>
+					<div id="assets" class="panel"></div>
+				</td>
+				<td>
+					<canvas id="graph0" width="256" height="144" style="width:100%; background-color: #000000;"></canvas>
+				</td>
+			</tr>
+		</table>
+			<div id="xyz"></div>
+		<script>
+			var Engine = new KhawnEngine();
+			var AI = new AInterface(Engine);
+			var AIcanvas = document.createElement("canvas");
+			AIcanvas.width = 64;
+			AIcanvas.height = 36;
+			var AIcamera = null;
+			var canvas = document.getElementById("viewport");
+			canvas.onclick = function(e) {
+				canvas.requestFullscreen();
+				setTimeout(function() {
+					canvas.requestPointerLock();
+				}, 10);
+			}
+			var Graph0 = new GraphHandler(document.getElementById("graph0"));
+			Graph0.calculateSmoothGrapthLookup(8);
+			var Importer = document.getElementById("Import");
+			var model;
+			Importer.onchange = function(e) {
+				for (var i=0; i<e.target.files.length; i++) {
+					var file = e.target.files[i];
+					var reader = new FileReader();
+					reader.onload = function(e) {
+						var data = new Uint8Array(e.target.result);
+						if (file.name.endsWith(".fbx")) {
+							var decoder = new Engine.FBXdecoder();
+							decoder.parse(data);
+							decoder.decodeData();
+							model = decoder.toObject(Engine.DiffuseMaterial);
+							model.Children[1].Components[0].BlendShapeValues.HideTears = 1;
+							var q1 = Engine.axsisAngle(new Engine.Angle(-90),new Engine.Vector3([1,0,0]));
+							var q2 = Engine.axsisAngle(new Engine.Angle(180),new Engine.Vector3([1,0,0]));
+							var Hips = model.Children[0];
+							var Chest = Hips.Children[0].Children[0];
+							var Neck = Chest.Children[0];
+							var Head = Neck.Children[0];
+							AIcamera = new Engine.Components.CamreaViewPort(AIcanvas,[64,36],71.25,0.5,true,0.058,false);
+							Head.AddComponent(AIcamera);
+							AI.addLimbOutput("Neck",function(e,o){
+								o.setMatrix(e.ToMatrix());
+							},Neck);
+							if (false) {
+								AI.addLimbOutput("Hips",function(e,o){
+									o.setMatrix(q1.Multiply(e).ToMatrix());
+								},Hips);
+								AI.addLimbOutput("Chest",function(e,o){
+									o.setMatrix(e.ToMatrix());
+								},Chest);
+								var LeftArm = Chest.Children[1].Children[0];
+								AI.addLimbOutput("LeftArm",function(e,o){
+									o.setMatrix(e.ToMatrix());
+								},LeftArm);
+								var LeftElbow = LeftArm.Children[0];
+								AI.addLimbOutput("LeftElbow",function(e,o){
+									o.setMatrix(e.ToMatrix());
+								},LeftElbow);
+								var LeftWrist = LeftElbow.Children[0];
+								AI.addLimbOutput("LeftWrist",function(e,o){
+									o.setMatrix(e.ToMatrix());
+								},LeftWrist);
+								var RightArm = Chest.Children[2].Children[0];
+								AI.addLimbOutput("RightArm",function(e,o){
+									o.setMatrix(e.ToMatrix());
+								},RightArm);
+								var RightElbow = RightArm.Children[0];
+								AI.addLimbOutput("RightElbow",function(e,o){
+									o.setMatrix(e.ToMatrix());
+								},RightElbow);
+								var RightWrist = RightElbow.Children[0];
+								AI.addLimbOutput("RightWrist",function(e,o){
+									o.setMatrix(e.ToMatrix());
+								},RightWrist);
+								var LeftLeg = Hips.Children[2];
+								AI.addLimbOutput("LeftLeg",function(e,o){
+									o.setMatrix(q2.Multiply(e).ToMatrix());
+								},LeftLeg);
+								var LeftKnee = LeftLeg.Children[0];
+								AI.addLimbOutput("LeftKnee",function(e,o){
+									o.setMatrix(q2.Multiply(e).ToMatrix());
+								},LeftKnee);
+								var LeftAnkle = LeftKnee.Children[0];
+								AI.addLimbOutput("LeftAnkle",function(e,o){
+									o.setMatrix(e.ToMatrix());
+								},LeftAnkle);
+								var RightLeg = Hips.Children[3];
+								AI.addLimbOutput("RightLeg",function(e,o){
+									o.setMatrix(q2.Multiply(e).ToMatrix());
+								},RightLeg);
+								var RightKnee = RightLeg.Children[0];
+								AI.addLimbOutput("RightKnee",function(e,o){
+									o.setMatrix(q2.Multiply(e).ToMatrix());
+								},RightKnee);
+								var RightAnkle = RightKnee.Children[0];
+								AI.addLimbOutput("RightAnkle",function(e,o){
+									o.setMatrix(e.ToMatrix());
+								},RightAnkle);
+							}
+							AI.InitalizeAI({Trainable:true,OtherInputs:4,InputResolution:[64,36],Layers:[[4,4],48]});
+							Engine.Root.addChild(model);
+							Engine.listAssets();
+							AssetMag.AddUnaddedAssets(Engine.Assets);
+							AssetMag.createDropdownHeigherarchy();
+						} else if (file.name.endsWith(".obj")) {
+							var decoder = new Engine.OBJdecoder();
+							decoder.parse(data);
+							decoder.decodeData();
+							Engine.Root.addChild(decoder.toObject());
+							Engine.listAssets();
+							AssetMag.AddUnaddedAssets(Engine.Assets);
+							AssetMag.createDropdownHeigherarchy();
+						} else if (file.name.endsWith(".png") || file.name.endsWith(".jpg")) {
+							var blob = new Blob([data]);
+							var Img = new Image();
+							Img.src = URL.createObjectURL(blob);
+							Img.onload = function() {
+								Engine.Assets.push(new Engine.Texture(Img));
+								AssetMag.AddUnaddedAssets(Engine.Assets);
+								AssetMag.createDropdownHeigherarchy();
+							}
+						} else if (file.name.endsWith(".vmd")) {
+							var decoder = new Engine.VMDdecoder();
+							decoder.parse(data);
+							console.log(decoder.parsed);
+						}
+					}
+					reader.readAsArrayBuffer(file);
+				}
+			}
+			// var Camera = Engine.CreateCamera(canvas,[1920,1080],100,0.2,false);
+			//var Camera = Engine.CreateCamera(canvas,[1600,900],90,0.2,false);
+			// var Camera = Engine.CreateCamera(canvas,[1280,720],90,0.2,false);
+			//var Camera = Engine.CreateCamera(canvas,[1366,768],90,0.2,false);
+			//var Camera = Engine.CreateCamera(canvas,[683,384],90,0.2,false);
+			var Camera = Engine.CreateCamera(canvas,[512,288],90,0.2,false);
+			Camera.transform.traslation.AddToThis(new Engine.Vector3([0,0.5,2]));
+			Camera.rotateThisAroundYAxis(new Engine.Angle(180));
+			Engine.Root.addChild(Camera);
+			var Lights = new Engine.Object();
+			Lights.Name = "Lights";
+			//var SunLight = new Engine.Object();
+			//SunLight.AddComponent(new Engine.Components.DirectionalLight([0.5,0.5,0.5]));
+			//SunLight.rotateThisAroundYAxis(new Engine.Angle(-45));
+			//SunLight.rotateThisAroundXAxis(new Engine.Angle(-45));
+			//Lights.addChild(SunLight);
+
+			for (var q=0; q<24; q++) {
+				var Light = new Engine.Object();
+				Light.Name = "Light" + q;
+				var color = Engine.Hue(Math.random());
+				Light.AddComponent(new Engine.Components.PointLight(color));
+				//Light.AddComponent(new Engine.Components.PointLight([2*color[0],2*color[1],2*color[2]]));
+				// Light.AddComponent(new Engine.Components.PointLight([1,1,1]));
+				Light.SetPosition([(Math.random()*10)-5,Math.random()*4,(Math.random()*10)-5]);
+				Lights.addChild(Light);
+			}
+
+			var LightProbes = [];
+			for (var i=0; i<4; i++) {
+				var LP = new Engine.Object();
+				LP.Name = "LightProbe" + i;
+				LightProbes.push(new Engine.Components.ReflectionProbe());
+				LP.AddComponent(LightProbes[LightProbes.length-1]);
+				LP.SetPosition([((i%2)*8)-4,2,((Math.floor(i/2)%2)*8)-4]);
+				Engine.Root.addChild(LP);
+			}
+			setTimeout(function() {
+				LightProbes[0].Render();
+				LightProbes[1].Render();
+				LightProbes[2].Render();
+				LightProbes[3].Render();
+			},1000);
+			if (false) {
+				var Test;
+				setTimeout(function() {
+					LightProbes[0].Render();
+					LightProbes[1].Render();
+					LightProbes[2].Render();
+					LightProbes[3].Render();
+
+					//var Obj = Engine.CreateMeshObject(Engine.DefaultCubeMesh,[Engine.DefaultMaterial]);
+					var Obj = Engine.CreateMeshObject(Engine.DefaultCubeMesh,[Engine.DiffuseMaterial]);
+					Test = new Engine.Components.RigidBody();
+					Obj.AddComponent(Test);
+					Obj.AddComponent(new Engine.Components.BoxCollider());
+					// Obj.setMatrix(Engine.randomQuaternion().ToMatrix())
+					Engine.Root.addChild(Obj);
+					Obj.SetPosition([0,2,0])
+					Obj.SetScale(1);
+				},1000);
+				for (var i=0; i<3; i++) {
+					setTimeout(function(){
+						//Obj = Engine.CreateMeshObject(Engine.DefaultCubeMesh,[Engine.DefaultMaterial]);
+						Obj = Engine.CreateMeshObject(Engine.DefaultCubeMesh,[Engine.DiffuseMaterial]);
+						Obj.AddComponent(new Engine.Components.RigidBody());
+						Obj.AddComponent(new Engine.Components.BoxCollider());
+						// Obj.setMatrix(Engine.randomQuaternion().ToMatrix())
+						Engine.Root.addChild(Obj);
+						Obj.SetPosition([0,4,0]);
+						Obj.SetScale(1);
+					},2000+(i*1000));
+				}
+			}
+			//DefaultMaterial
+			//DebugMaterial
+
+			Engine.Root.addChild(Lights);
+			// var Floor = Engine.CreateMeshObject(Engine.DefaultFlipedCubeMesh,[Engine.DiffuseMaterial]);
+			var Floor = Engine.CreateMeshObject(Engine.DefaultCubeRoomMesh,[Engine.DiffuseMaterial,Engine.DefaultMaterial]);
+			Floor.AddComponent(new Engine.Components.BoxCollider(new Engine.Vector3([-0.5,-10,-0.5]),new Engine.Vector3([0.5,-0.5,0.5])));
+			
+			Floor.AddComponent(new Engine.Components.BoxCollider(new Engine.Vector3([-10,-0.5,-10]),new Engine.Vector3([-0.5,0.5,0.5])));
+			Floor.AddComponent(new Engine.Components.BoxCollider(new Engine.Vector3([-10,-0.5,-10]),new Engine.Vector3([0.5,0.5,-0.5])));
+			Floor.AddComponent(new Engine.Components.BoxCollider(new Engine.Vector3([10,-0.5,10]),new Engine.Vector3([0.5,0.5,-0.5])));
+			Floor.AddComponent(new Engine.Components.BoxCollider(new Engine.Vector3([10,-0.5,10]),new Engine.Vector3([-0.5,0.5,0.5])));
+			//var Floor = Engine.CreateMeshObject(Engine.DefaultPlaneMesh,[Engine.DefaultMaterial]);
+			Floor.Name = "Room";
+			Floor.SetScale(10);
+			Floor.SetPosition([0,5,0]);
+			Engine.Root.addChild(Floor);
+			var AIrunning = false;
+			setInterval(cycleAI,0);
+			function cycleAI() {
+				if (AIrunning) {
+					AIcamera.renderFrame();
+					var trsfm0 = AIcamera.Parrent.Parrent.getGlobalTransform();
+					var trsfm1 = AIcamera.Parrent.transform;
+					var q = Engine.lookAtRotation(trsfm0.InverseTransformVector(Vect),trsfm1.TransformVector(new Engine.Vector3([0,0,1])));
+					if (q.value[3] >= 0) {
+						var v = q.value.slice(0,3);
+					} else {
+						var v = q.value.slice(0,3).map(function(x){return -x});
+					}
+					AI.cycle(AIcanvas,new Float32Array([Prev,v[0],v[1],v[2]]),true);
+					TrainAI();
+				}
+			}
+			var TrainIdx = 0;
+			var Prev = 0;
+			//var Vect = Engine.randomPointOnSphere();
+			var Vect = new Engine.Vector3([0,0,1]);
+			function TrainAI() {
+				if (TrainIdx > 64) {
+					AI.finishEpoch(0.5);
+					//Vect = Engine.randomPointOnSphere();
+					TrainIdx = 0;
+					Graph0.Clear();
+					var trsfm = AIcamera.Parrent.getGlobalTransform();
+					Prev = trsfm.TransformVector(new Engine.Vector3([0,0,1])).Dot(Vect);
+				} else {
+					var trsfm = AIcamera.Parrent.getGlobalTransform();
+					//var Vect = Camera.transform.traslation.Subtract(trsfm.traslation).Normalize();
+					Vect.LerpThisBy(Vect.Cross(new Engine.Vector3([0,1,0])),0.25).NormalizeThis();
+					var d = trsfm.TransformVector(new Engine.Vector3([0,0,1])).Dot(Vect);
+					AI.ReinforcementTrain(((d-Prev)));
+					//AI.ReinforcementTrain(d+1);
+					Graph0.addValueAndGrapth((d+1)*0.5);
+					Prev = d;
+					TrainIdx++;
+				}
+			}
+			//var ToonMat = new Engine.Material(Engine.ToonShader,{uColor:[1,1,1],uTexture:Engine.DefaultTexture});
+			canvas.onmousemove = function(e) {
+				setTimeout(function(){
+					if (document.pointerLockElement === canvas) {
+						Camera.rotateThisAroundYAxis(new Engine.Angle(e.movementX/300,true));
+						Camera.rotateThisAroundThisXAxis(new Engine.Angle(e.movementY/100,true));
+					}
+				},17);
+			}
+			var HeldDownKeys = {};
+			window.onkeydown = function(e) {
+				HeldDownKeys.control = e.ctrlKey;
+				HeldDownKeys[e.key.toLowerCase()] = true;
+				if (document.pointerLockElement === canvas) {
+					e.preventDefault();
+				}
+				if (HeldDownKeys.control && HeldDownKeys.s) {
+					e.preventDefault();
+					save();
+				}
+				if (HeldDownKeys.escape) {
+					newmenu.style='display:none;';
+				}
+				if (e.key == "Alt") {
+					HeldDownKeys = {};
+				}
+			}
+			window.onkeyup = function(e) {
+				if (e.key == "Alt") {
+					HeldDownKeys = {};
+				}
+				HeldDownKeys.control = e.ctrlKey;
+				HeldDownKeys[e.key.toLowerCase()] = false;
+			}
+			canvas.onmousedown = function(e) {
+				if (e.button == 0) {
+					HeldDownKeys.leftclick = true;
+				}
+			}
+			canvas.onmouseup = function(e) {
+				if (e.button == 0) {
+					HeldDownKeys.leftclick = false;
+				}
+			}
+			var newmenu = document.getElementById("blurMenu");
+			var cmenu = document.getElementById("contextmenu");
+			window.oncontextmenu = function(e) {
+				var elemt = null;
+				for (var i=0; i<e.path.length; i++) {
+					if (e.path[i].IsAsset || e.path[i].IsObject || e.path[i].IsPanel) {
+						elemt = e.path[i];
+						break;
+					}
+				}
+				if (elemt) {
+					e.preventDefault();
+					cmenu.style.display = "block";
+					cmenu.style.left = e.x.toString()+"px";
+					cmenu.style.top = e.y.toString()+"px";
+				} else {
+					cmenu.style.display = "none";
+				}
+			}
+			function createNew() {
+				cmenu.children[0].style.display = "none";
+				cmenu.children[1].style.display = "";
+			}
+			function save() {
+
+			}
+			function newMaterial() {
+				var Mat = new Engine.Material(Engine.DiffuseShader,{uColor:[1,1,1],uTexture:Engine.DefaultTexture});
+				AssetMag.AddAsset(Mat);
+				cmenu.children[0].style.display = "";
+				cmenu.children[1].style.display = "none";
+				cmenu.style.display = "none";
+			}
+			function Delete() {
+				AssetMag.AssetList.splice(AssetMag.SelectedElement.AssetIndex,1);
+				AssetMag.AssetNames.splice(AssetMag.SelectedElement.AssetIndex,1);
+				AssetMag.AssetIcons.splice(AssetMag.SelectedElement.AssetIndex,1);
+				AssetMag.UpdateAssetList(AssetMag.AssetList);
+			}
+			var ForwardVector = new Engine.Vector3([0,0,1]).Scale(0.1);
+			var RightVector = new Engine.Vector3([1,0,0]).Scale(0.1);
+			var LeftVector = new Engine.Vector3([-1,0,0]).Scale(0.1);
+			var BackwardVector = new Engine.Vector3([0,0,-1]).Scale(0.1);
+			var UpVector = new Engine.Vector3([0,1,0]).Scale(0.1);
+			var DownVector = new Engine.Vector3([0,-1,0]).Scale(0.1);
+			function FrameLoop() {
+				var speed = 0.1;
+				if (HeldDownKeys.control) {
+					speed = 2;
+				} else {
+					speed = 0.6;
+				}
+				if (HeldDownKeys.leftclick && Test) {
+					Test.PullTo(Camera.getGlobalTransform().traslation,0.01,0.95);
+				}
+				if (document.pointerLockElement === canvas) {
+					if (HeldDownKeys.w) {
+						Camera.transform.traslation.AddToThis(Camera.transform.TransformVector(ForwardVector).Scale(speed));
+					}
+					if (HeldDownKeys.a) {
+						Camera.transform.traslation.AddToThis(Camera.transform.TransformVector(LeftVector).Scale(speed));
+					}
+					if (HeldDownKeys.d) {
+						Camera.transform.traslation.AddToThis(Camera.transform.TransformVector(RightVector).Scale(speed));
+					}
+					if (HeldDownKeys.s) {
+						Camera.transform.traslation.AddToThis(Camera.transform.TransformVector(BackwardVector).Scale(speed));
+					}
+					if (HeldDownKeys[" "]) {
+						Camera.transform.traslation.AddToThis(Camera.transform.TransformVector(UpVector).Scale(speed));
+					}
+					if (HeldDownKeys.shift) {
+						Camera.transform.traslation.AddToThis(Camera.transform.TransformVector(DownVector).Scale(speed));
+					}
+				}
+				var t = performance.now()/150;
+				Engine.Update();
+				// Engine.Render();
+				Engine.UpdateRenderQue();
+				Camera.Components[0].renderFrame();
+				// setTimeout(function(){
+					requestAnimationFrame(FrameLoop);
+				// },50);
+			}
+			// setInterval(function(){
+			// 	Engine.Update();
+			// },125);
+			Engine.listAssets();
+			var AssetIcon = new Image();
+			AssetIcon.src = "data:image/png;base64,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";
+			var AssetManager = function(AssetlistElemt,AssetDisplayElemt,HeigerarchyDisplayPannel) {
+				this.DisplayElement = AssetlistElemt;
+				this.AssetDisplayElement = AssetDisplayElemt;
+				this.HeigerarchyDisplayPannel = HeigerarchyDisplayPannel;
+				this.SelectedObjectElement = null;
+				this.SelectedObject = null;
+				this.SelectedElement = null;
+				this.SelectedAsset = null;
+				this.DraggingElement = null;
+				this.DraggingAsset = null;
+				this.DraggingElementXY = [0,0];
+				this.AssetList = [Engine.DefaultCubeRoomMesh,Engine.DiffuseMaterial,Engine.DefaultMaterial,Engine.DefaultTexture,Engine.DiffuseShader,Engine.DefaultShader,Engine.ToonShader,Engine.UnlitShader];
+				this.AssetNames = ["Room Mesh","Diffuse Material","PBR Material","White Texture","Diffuse Shader","PBR Shader","Toon Shader","Unlit Shader"];
+				this.AssetIcons = [];
+				this.DropZone = null;
+				this.AssetConstructors = Object.values(Engine);
+				var self = this;
+				window.onmousemove = function(e) {
+					self.DraggingElementXY[0] += e.movementX;
+					self.DraggingElementXY[1] += e.movementY;
+					if (self.DraggingElement) {
+						if (self.DraggingElement.style.position == "fixed" || Math.hypot(e.movementX,e.movementY) > 2) {
+							self.DraggingElement.style = "position: fixed; left: "+self.DraggingElementXY[0].toString()+"px; top: "+self.DraggingElementXY[1].toString()+"px;";
+						}
+					}
+				}
+				window.onmouseup = function(e) {
+					if (!e.path.includes(cmenu)) {
+						cmenu.style.display = "none";
+						if (self.DraggingElement) {
+							if (self.DraggingElement.style.position !== "fixed") {
+								if (self.SelectedElement) {
+									self.SelectedElement.style = "";
+								}
+								self.DraggingElement.style.background = self.DraggingElement.style.background == "yellow" ? "white" : "yellow";
+								self.SelectedElement = self.DraggingElement;
+								self.SelectedAsset = self.AssetList[self.SelectedElement.AssetIndex];
+								if (self.SelectedObjectElement) {
+									self.SelectedObjectElement.children[0].style.background = "";
+									self.SelectedObjectElement = null;
+									self.SelectedObject = null;
+								}
+								self.displayAsset(self.SelectedAsset);
+							} else {
+								self.DraggingElement.style = "";
+								setTimeout(function(){
+									if (self.DropZone) {
+										self.DropZone.AssetDrop(self.DraggingAsset);
+										self.DropZone = null;
+									}
+									self.DraggingAsset = null;
+								},50);
+							}
+						}
+						self.DraggingElement = null;
+					}
+				}
+				this.createDropdownElement = function(Parent,Title) {
+					var ele = document.createElement("div");
+					ele.className = "dropdown";
+					ele.Droped = true;
+					ele.Isdropdown = true;
+					if (!Parent.parentElement.Isdropdown) {
+						ele.addEventListener('dblclick',function(e) {
+							e.preventDefault();
+							var elem = null;
+							for (var i=0; i<e.path.length; i++) {
+								if (e.path[i].Isdropdown) {
+									elem = e.path[i];
+									break;
+								}
+							}
+							elem.Droped = !elem.Droped;
+							if (elem.Droped) {
+								elem.children[1].style.display = "";
+								elem.children[0].innerText = "▼ "+elem.children[0].innerText.substring(2);
+							} else {
+								elem.children[1].style.display = "none";
+								elem.children[0].innerText = "▲ "+elem.children[0].innerText.substring(2);
+							}
+						});
+						ele.addEventListener('click',function(e) {
+							e.preventDefault();
+							var elem = null;
+							for (var i=0; i<e.path.length; i++) {
+								if (e.path[i].Isdropdown) {
+									elem = e.path[i];
+									break;
+								}
+							}
+							if (self.SelectedObjectElement) {
+								if (self.SelectedObjectElement == elem) {
+									self.SelectedObjectElement.children[0].style.background = "";
+									self.SelectedObjectElement = null;
+									self.SelectedObject = null;
+								} else {
+									self.SelectedObjectElement.children[0].style.background = "";
+									elem.children[0].style.background = "#808040";
+									self.SelectedObjectElement = elem;
+									self.SelectedObject = elem.Object;
+									self.displayAsset(self.SelectedObject);
+								}
+							} else {
+								elem.children[0].style.background = "#808040";
+								self.SelectedObjectElement = elem;
+								self.SelectedObject = elem.Object;
+								self.displayAsset(self.SelectedObject);
+							}
+							if (self.SelectedElement) {
+								self.SelectedElement.style = "";
+								self.SelectedElement = null;
+								self.SelectedAsset = null;
+							}
+						});
+					}
+					var name = document.createElement("div");
+					ele.appendChild(name);
+					name.innerText = "▼ "+Title;
+					name.className = "dropdowntitle";
+					var content = document.createElement("div");
+					ele.appendChild(content);
+					Parent.appendChild(ele);
+					return content;
+				}
+				this.createDropdownHeigherarchy = function() {
+					self.HeigerarchyDisplayPannel.replaceChildren();
+					function recursive(obj,prnt) {
+						var ele = self.createDropdownElement(prnt,obj.Name);
+						ele.parentElement.Object = obj;
+						for (var i=0; i<obj.Children.length; i++) {
+							recursive(obj.Children[i],ele);
+						}
+						return ele;
+					}
+					recursive(Engine.Root,self.HeigerarchyDisplayPannel);
+				}
+				this.makeDisplayNode = function(name,type,value,onchange,dat) {
+					var Ele = document.createElement("div");
+					// Ele.style.height = "5vh";
+					// Ele.style.textAlign = "right";
+					Ele.className = "valueFeild";
+					Ele.innerText = name+"\n";
+					if (type == "vec3") {
+						var Input0 = document.createElement("input");
+						Input0.type = "number";
+						Input0.value = value[0];
+						Ele.appendChild(Input0);
+						var Input1 = document.createElement("input");
+						Input1.type = "number";
+						Input1.value = value[1];
+						Ele.appendChild(Input1);
+						var Input2 = document.createElement("input");
+						Input2.type = "number";
+						Input2.value = value[2];
+						Ele.appendChild(Input2);
+						Input0.onchange = function(e) {
+							onchange([parseFloat(Input0.value),parseFloat(Input1.value),parseFloat(Input2.value)],name,dat);
+						}
+						Input1.onchange = function(e) {
+							onchange([parseFloat(Input0.value),parseFloat(Input1.value),parseFloat(Input2.value)],name,dat);
+						}
+						Input2.onchange = function(e) {
+							onchange([parseFloat(Input0.value),parseFloat(Input1.value),parseFloat(Input2.value)],name,dat);
+						}
+					} else if (type == "sampler2D") {
+						Ele.style.height = "15vh";
+						Ele.innerText += "\n";
+						var TexDrop = document.createElement("canvas");
+						TexDrop.width = 128;
+						TexDrop.height = 128;
+						var ctx = TexDrop.getContext("2d");
+						if (value.Image) {
+							ctx.drawImage(value.Image,0,0,128,128);
+						}
+						TexDrop.style = "width:5vw; height:5vw; background-color:white;";
+						TexDrop.onmouseover = function(e) {
+							self.DropZone = e.target;
+						}
+						TexDrop.AssetDrop = function(ass) {
+							if (ass.Image) {
+								ctx.clearRect(0,0,128,128);
+								ctx.drawImage(ass.Image,0,0,128,128);
+							}
+							if (ass instanceof Engine.Texture) {
+								onchange(ass,name,dat);
+							}
+						}
+						Ele.appendChild(TexDrop);
+					} else if (type == "float") {
+						var Input0 = document.createElement("input");
+						Input0.type = "number";
+						Input0.value = value;
+						Ele.appendChild(Input0);
+						Input0.onchange = function(e) {
+							onchange(parseFloat(Input0.value),name,dat);
+						}
+					} else if (type == "function") {
+						var Input0 = document.createElement("input");
+						Input0.type = "button";
+						Input0.value = name;
+						Ele.appendChild(Input0);
+						Input0.onclick = function(e) {
+							onchange(name,dat);
+						}
+					} else if (type == "bool") {
+						var Input0 = document.createElement("input");
+						Input0.type = "checkbox";
+						Input0.checked = value;
+						Ele.appendChild(Input0);
+						Input0.onclick = function(e) {
+							onchange(Input0.checked,name,dat);
+						}
+					}
+					return Ele;
+				}
+				this.DefaultValues = {
+					vec3:[0,0,0],
+					vec4:[0,0,0,0],
+					mat3:[[1,0,0],[0,1,0],[0,0,1]],
+					mat4:[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],
+					sampler2D:Engine.DefaultTexture,
+				};
+				this.createAssetFeild = function(name,aset,onchange,dat,noTitle) {
+					var idx = self.AssetList.indexOf(aset);
+					if (!noTitle) {
+						var Ele = document.createElement("div");
+						Ele.className = "assetFeild";
+						Ele.innerText += name+"\n";
+					} else {
+						if (idx !== -1) {
+							var Ele = document.createElement("span");
+							Ele.className = "assetFeild";
+							Ele.innerText += self.AssetNames[idx]+"\n";
+						} else {
+							var Ele = document.createElement("span");
+							Ele.className = "assetFeild";
+							Ele.innerText += name+"["+dat.toString()+"]\n";
+						}
+					}
+					var TexDrop = document.createElement("canvas");
+					TexDrop.width = 128;
+					TexDrop.height = 128;
+					var ctx = TexDrop.getContext("2d");
+					TexDrop.style = "width:5vw; height:5vw; background-color:white; margin: 0.2vw;";
+					if (idx !== -1) {
+						ctx.clearRect(0,0,128,128);
+						ctx.drawImage(self.AssetIcons[idx],0,0,128,128);
+					}
+					TexDrop.onmouseover = function(e) {
+						self.DropZone = e.target;
+					}
+					TexDrop.AssetConstructor = aset.constructor;
+					TexDrop.AssetDrop = function(ass) {
+						if (ass instanceof TexDrop.AssetConstructor) {
+							var idx = self.AssetList.indexOf(ass);
+							if (idx !== -1) {
+								ctx.clearRect(0,0,128,128);
+								ctx.drawImage(self.AssetIcons[idx],0,0,128,128);
+							}
+							onchange(ass,name,dat);
+						}
+					}
+					Ele.appendChild(TexDrop);
+					return Ele;
+				}
+				this.getType = function(aset) {
+					if (aset instanceof Engine.Vector3 || (aset instanceof Array && aset.length == 3)) {
+						return "vec3";
+					} else if (aset instanceof Engine.Texture) {
+						return "sampler2D";
+					} else if (aset.constructor === Number) {
+						return "float";
+					} else if (aset instanceof Function) {
+						return "function";
+					} else if (aset.constructor === Boolean) {
+						return "bool";
+					}
+				}
+				this.displayAsset = function(aset) {
+					self.AssetDisplayElement.replaceChildren();
+					var assetIDX = self.AssetList.indexOf(aset);
+					if (assetIDX !== -1) {
+						var Title = document.createElement("input");
+						Title.value = self.AssetNames[assetIDX];
+						Title.className = "assetTitle";
+						Title.onchange = function() {
+							self.AssetNames[assetIDX] = Title.value;
+							self.SelectedElement.innerText = self.AssetNames[assetIDX]+"\n";
+							self.AssetIcons[assetIDX].className = "Ico";
+							self.SelectedElement.appendChild(self.AssetIcons[assetIDX]);
+						}
+						self.AssetDisplayElement.appendChild(Title);
+						var Props = {};
+						if (aset instanceof Engine.Material) {
+							self.AssetDisplayElement.appendChild(self.createAssetFeild("shader",aset.shader,function(asslol,name){
+								if (asslol !== aset[name]) {
+									aset[name] = asslol;
+									var U = {};
+									var k = Object.keys(asslol.Uniforms);
+									for (var i=0; i<k.length; i++) {
+										var Ufrm = asslol.Uniforms[k[i]];
+										U[k[i]] = aset.Values[k[i]] || self.DefaultValues[Ufrm.Type];
+									}
+									aset.Values = U;
+									self.displayAsset(aset);
+								}
+							}));
+							Props = aset.Values;
+							var PropNames = Object.keys(Props);
+							var PropValues = Object.values(Props);
+							var PropTypes = PropNames.map(function(p){return aset.shader.Uniforms[p].Type});
+							for (var i=0; i<PropNames.length; i++) {
+								self.AssetDisplayElement.appendChild(self.makeDisplayNode(PropNames[i],PropTypes[i],PropValues[i],function(val,name){
+									aset.Values[name] = val;
+								}));
+							}
+						} else if (aset instanceof Engine.SkinnedMesh) {
+							var Info = document.createElement("div");
+							Info.innerText += "Vertex Count: "+aset.MeshData.VertexDataIndexs.length+"\n";
+							self.AssetDisplayElement.appendChild(Info);
+							Info = document.createElement("div");
+							Info.innerText += "Vertex Position Count: "+aset.MeshData.VertexPositions.length+"\n";
+							self.AssetDisplayElement.appendChild(Info);
+							Info = document.createElement("div");
+							Info.innerText += "Vertex Normal Count: "+aset.MeshData.VertexNormals.length+"\n";
+							self.AssetDisplayElement.appendChild(Info);
+							Info = document.createElement("div");
+							Info.innerText += "Vertex UV Count: "+aset.MeshData.VertexUVs.length+"\n";
+							self.AssetDisplayElement.appendChild(Info);
+							Info = document.createElement("div");
+							Info.innerText += "Bone Count: "+aset.Bones.length+"\n";
+							self.AssetDisplayElement.appendChild(Info);
+						} else if (aset instanceof Engine.Mesh) {
+							var Info = document.createElement("div");
+							Info.innerText += "Vertex Count: "+aset.MeshData.VertexDataIndexs.length+"\n";
+							self.AssetDisplayElement.appendChild(Info);
+							Info = document.createElement("div");
+							Info.innerText += "Vertex Position Count: "+aset.MeshData.VertexPositions.length+"\n";
+							self.AssetDisplayElement.appendChild(Info);
+							Info = document.createElement("div");
+							Info.innerText += "Vertex Normal Count: "+aset.MeshData.VertexNormals.length+"\n";
+							self.AssetDisplayElement.appendChild(Info);
+							Info = document.createElement("div");
+							Info.innerText += "Vertex UV Count: "+aset.MeshData.VertexUVs.length+"\n";
+							self.AssetDisplayElement.appendChild(Info);
+						} else if (aset instanceof Engine.Texture) {
+							var Imag = document.createElement("canvas");
+							Imag.width = 2048;
+							Imag.height = 2048;
+							Imag.style = "width:28vw; background-color:white;";
+							Imag.getContext("2d").drawImage(aset.Image,0,0,2048,2048);
+							self.AssetDisplayElement.appendChild(Imag);
+						}
+					} else {
+						var Title = document.createElement("input");
+						Title.value = aset.Name;
+						Title.className = "assetTitle";
+						Title.onchange = function() {
+							aset.Name = Title.value;
+							self.SelectedObjectElement.children[0].innerText = self.SelectedObjectElement.children[0].innerText.substring(0,2)+Title.value;
+						}
+						self.AssetDisplayElement.appendChild(Title);
+						if (aset.constructor) {
+							for (var i=0; i<aset.Components.length; i++) {
+								var Comp = aset.Components[i];
+								var div = document.createElement("div");
+								div.className = "componet";
+								var title = document.createElement("h1");
+								title.innerText = Object.keys(Engine.Components)[Object.values(Engine.Components).indexOf(aset.Components[i].constructor)];
+								div.appendChild(title);
+								var PropNames = Object.keys(aset.Components[i]);
+								var PropValues = Object.values(aset.Components[i]);
+								for (var j=0; j<PropNames.length; j++) {
+									var Type = self.getType(Comp[PropNames[j]]);
+									if (Type) {
+										if (Type == "function") {
+											// div.appendChild(self.makeDisplayNode(PropNames[j],Type,PropValues[j],function(name){
+											// 	Comp[name]();
+											// }));
+										} else {
+											div.appendChild(self.makeDisplayNode(PropNames[j],Type,PropValues[j],function(val,name){
+												Comp[name] = val;
+												console.log(name,val);
+											}));
+										}
+									} else {
+										if (PropValues[j] instanceof Array) {
+											var ArrayContainer = document.createElement("div");
+											ArrayContainer.innerText += PropNames[j]+"\n";
+											ArrayContainer.className = "sidescroll";
+											for (var k=0; k<PropValues[j].length; k++) {
+												var Type = self.getType(Comp[PropNames[j]][k]);
+												if (Type) {
+													if (Type == "function") {
+														// ArrayContainer.appendChild(self.makeDisplayNode(PropNames[j],Type,PropValues[j],function(name,idx){
+														// 	Comp[name][idx]();
+														// },k,true));
+													} else {
+														ArrayContainer.appendChild(self.makeDisplayNode(PropNames[j],Type,PropValues[j][k],function(val,name,idx){
+															Comp[name][idx] = val;
+														},k,true));
+													}
+												} else {
+													ArrayContainer.appendChild(self.createAssetFeild(PropNames[j],PropValues[j][k],function(asslol,name,idx){
+														Comp[name][idx] = asslol;
+													},k,true));
+												}
+											}
+											for (var k=0; k<ArrayContainer.children.length; k++) {
+												ArrayContainer.children[k].style.display = "inline-block";
+											}
+											div.appendChild(ArrayContainer);
+										} else {
+											if (PropNames[j] !== "Parrent") {
+												if (!self.AssetConstructors.includes(PropValues[j].constructor)) {
+													console.log(PropValues[j]);
+													var kz = Object.keys(PropValues[j]);
+													var ArrayContainer = document.createElement("div");
+													ArrayContainer.innerText += PropNames[j]+"\n";
+													ArrayContainer.className = "sidescroll";
+													for (var k=0; k<kz.length; k++) {
+														var key = kz[k];
+														var Type = self.getType(Comp[PropNames[j]][key]);
+														if (Type) {
+															if (Type == "function") {
+																// ArrayContainer.appendChild(self.makeDisplayNode(PropNames[j],Type,PropValues[j],function(name,idx){
+																// 	Comp[name][idx]();
+																// },k,true));
+															} else {
+																ArrayContainer.appendChild(self.makeDisplayNode(key,Type,PropValues[j][key],function(val,name,idx){
+																	Comp[idx][name] = val;
+																},PropNames[j],true));
+															}
+														} else {
+															ArrayContainer.appendChild(self.createAssetFeild(key,PropValues[j][key],function(asslol,name,idx){
+																Comp[idx][name] = asslol;
+															},PropNames[j],true));
+														}
+													}
+													for (var k=0; k<ArrayContainer.children.length; k++) {
+														ArrayContainer.children[k].style.display = "inline-block";
+													}
+													div.appendChild(ArrayContainer);
+												} else {
+													div.appendChild(self.createAssetFeild(PropNames[j],PropValues[j],function(asslol,name){
+														Comp[name] = asslol;
+													}));
+												}
+											}
+										}
+									}
+								}
+								self.AssetDisplayElement.appendChild(div);
+							}
+						}
+					}
+				}
+				this.UntitledName = function(aset) {
+					return "New "+Object.keys(Engine)[Object.values(Engine).indexOf(aset.constructor)];
+				}
+				this.createIcon = function(aset) {
+					var Ico = document.createElement("canvas");
+					Ico.width = 128;
+					Ico.height = 128;
+					var ctx = Ico.getContext("2d");
+					Ico.className = "Ico";
+					if (aset.Image) {
+						ctx.drawImage(aset.Image,0,0,128,128);
+					} else {
+						ctx.drawImage(AssetIcon,0,0,128,128);
+					}
+					return Ico;
+				}
+				this.AddAsset = function(aset) {
+					self.AssetList.push(aset);
+					self.AssetIcons.push(self.createIcon(aset));
+					self.AssetNames.push(self.UntitledName(aset));
+					self.UpdateAssetList(self.AssetList);
+				}
+				this.AddUnaddedAssets = function(asets) {
+					for (var i=0; i<asets.length; i++) {
+						if (!self.AssetList.includes(asets[i])) {
+							this.AddAsset(asets[i]);
+						}
+					}
+				}
+				this.UpdateAssetList = function(asets) {
+					var newAssetNames = [];
+					var newAssetIcons = [];
+					self.DisplayElement.replaceChildren();
+					for (var i=0; i<asets.length; i++) {
+						var oldIdx = self.AssetList.indexOf(asets[i]);
+						if (oldIdx == -1 || !self.AssetNames[oldIdx]) {
+							console.log("New Asset: ",asets[i]);
+							newAssetNames[i] = self.UntitledName(asets[i]);
+						} else {
+							newAssetNames[i] = self.AssetNames[oldIdx];
+							newAssetIcons[i] = self.AssetIcons[oldIdx];
+						}
+						if (!self.AssetIcons[oldIdx]) {
+							newAssetIcons[i] = self.createIcon(asets[i]);
+						}
+						var Name = newAssetNames[i];
+						var Ele = document.createElement("div");
+						Ele.className = "asset";
+						Ele.IsAsset = true;
+						Ele.IsObject = false;
+						Ele.IsPanel = false;
+						Ele.AssetIndex = i;
+						Ele.innerText = Name+"\n";
+						var AssetIcon = newAssetIcons[i];
+						AssetIcon.ondragstart = function(e) {
+							e.preventDefault();
+						}
+						Ele.onmousedown = function(e) {
+							e.preventDefault();
+							self.DropZone = null;
+							var elemt = null;
+							for (var i=0; i<e.path.length; i++) {
+								elemt = e.path[i];
+								if (elemt.IsAsset || elemt.IsObject || elemt.IsPanel) {
+									break;
+								}
+							}
+							var parent = elemt;
+							var scrollParent = parent;
+							self.DraggingElementXY = [0,0];
+							while (parent && (!isNaN(parent.offsetLeft) && !isNaN(parent.offsetTop))) {
+								if (parent == scrollParent) {
+									self.DraggingElementXY[0] += parent.offsetLeft;
+									self.DraggingElementXY[1] += parent.offsetTop;
+									parent=parent.offsetParent;
+								}
+								self.DraggingElementXY[0] -= scrollParent.scrollLeft;
+								self.DraggingElementXY[1] -= scrollParent.scrollTop;
+								scrollParent = scrollParent.parentElement;
+							}
+							self.DraggingAsset = self.AssetList[elemt.AssetIndex];
+							self.DraggingElement = elemt;
+						}
+						Ele.appendChild(AssetIcon);
+						self.DisplayElement.appendChild(Ele);
+					}
+					self.AssetList = asets;
+					self.AssetNames = newAssetNames;
+					self.AssetIcons = newAssetIcons;
+				}
+			}
+			var AssetsPannel = document.getElementById("assets");
+			var HeigerarchyPannel = document.getElementById("heigerarchy");
+			var AssetProperitesPannel = document.getElementById("properites");
+			AssetsPannel.IsPanel = true;
+			var AssetMag = new AssetManager(AssetsPannel,AssetProperitesPannel,HeigerarchyPannel);
+			AssetMag.UpdateAssetList(AssetMag.AssetList);
+			// setInterval(function(){
+				AssetMag.createDropdownHeigherarchy();
+			// },1000);
+			Engine.Update();
+			FrameLoop();
+		</script>
+    </body>
+</html>
