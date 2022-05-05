@@ -177,7 +177,7 @@ var ReconstructionAI = function(opts){
 				highp vec3 w1 = texelFetch(uWaB[1],p0,0).xyz;
 				highp vec3 w2 = texelFetch(uWaB[2],p0,0).xyz;
                 OutGradient[0] = vec4(((w0*delta.x)+(w1*delta.y)+(w2*delta.z))*deriv,1.0);
-				OutGradient[1] = vec4(((w0*delta2.x)+(w1*delta2.y)+(w2*delta2.z)),1.0);
+				OutGradient[1] = vec4(((w0*delta2.x)+(w1*delta2.y)+(w2*delta2.z))*deriv,1.0);
             }
         `);
         this.backpropWaB = createProgram(`#version 300 es
@@ -336,7 +336,7 @@ var ReconstructionAI = function(opts){
                 var D = [];
                 this.gl.useProgram(this.randomWaB);
                 //this.gl.uniform1f(m,1/Math.sqrt(this.layerKernelSizes[i][0]*this.layerKernelSizes[i][1]*6));
-				this.gl.uniform1f(m,Math.sqrt(2/(this.layerKernelSizes[i][0]*this.layerKernelSizes[i][1]*6)));
+				this.gl.uniform1f(m,Math.sqrt(1/(this.layerKernelSizes[i][0]*this.layerKernelSizes[i][1]*6)));
                 // this.gl.uniform1f(m,1/Math.sqrt(Math.sqrt(this.layerKernelSizes[i][0]*this.layerKernelSizes[i][1]*6)));
                 this.gl.viewport(0,0,this.layerResolutions[i][0],this.layerResolutions[i][1]);
                 this.gl.scissor(0,0,this.layerResolutions[i][0],this.layerResolutions[i][1]);
@@ -677,7 +677,6 @@ var ReconstructionAI = function(opts){
         this.randomWaB = createProgram(`#version 300 es
             uniform highp mat4 uRand;
             uniform highp float uM;
-			uniform highp int uLayerLength;
             const highp float PI = 3.1415926535897932384626433832795;
             const highp float Tau = PI * 2.0;
             const highp float epsilon = 0.0000152587;
@@ -688,7 +687,7 @@ var ReconstructionAI = function(opts){
                 x = ((x>>8U)^x.ywzx)*110351524U;
                 x = ((x>>8U)^x.ywzx)*110351524U;
                 x = ((x>>8U)^x.ywzx)*110351524U;
-                seed = mod((vec4(x)/3141593.0)*uRand,1.0);
+                seed = mod((vec4(x)/314159.0)*uRand,1.0);
                 //seed = mod((vec4(x)/3141593.0)*uRand,2.000000238418579)-1.0;
                 return seed;
             }
@@ -701,24 +700,8 @@ var ReconstructionAI = function(opts){
             void main(){
                 seed = gl_FragCoord.xyzw*uRand;
                 randn();
-                // random();
-                //fragColor = random()*uM;
-				highp int y = int(gl_FragCoord.y-0.5)*4;
-				highp vec4 rnd = randn();
-				highp vec4 result = vec4(0);
-				if (y <= uLayerLength && y > 0) {
-					result.x = rnd.x;
-				}
-				if (y+1 <= uLayerLength) {
-					result.y = rnd.y;
-				}
-				if (y+2 <= uLayerLength) {
-					result.z = rnd.z;
-				}
-				if (y+3 <= uLayerLength) {
-					result.w = rnd.w;
-				}
-				fragColor = result*uM;
+                random();
+				fragColor = randn()*uM;
             }
         `);
         this.flatten = createProgram(`#version 300 es
@@ -732,10 +715,11 @@ var ReconstructionAI = function(opts){
                 highp int l = 3*uDims[0]*uDims[1];
                 if (x < l) {
                     fragOut = vec4(texelFetch(uInp[0],p.xy,0)[p.z],texelFetch(uInp[1],p.xy,0)[p.z],0,1);
-					// fragOut = vec4(texelFetch(uInp[0],p.xy,0)[p.z],0,0,1);
+					//fragOut = vec4(texelFetch(uInp[0],p.xy,0)[p.z],0,0,1);
                 } else {
                     highp float extp = texelFetch(uExInp[0],ivec2(x-l,0),0).x;
                     fragOut = vec4(extp,extp-texelFetch(uExInp[1],ivec2(x-l,0),0).x,0,1);
+					//fragOut = vec4(extp,0,0,1);
                 }
             }
         `);
@@ -799,8 +783,8 @@ var ReconstructionAI = function(opts){
                 for (highp int i = 0; i < uLayerLength; i++){
                     val += texelFetch(uGrad,ivec2(i,0),0).xy*texelFetch(uWaB,ivec2(i,y),0)[ym];
                 }
-                //Activation = vec4(val*activationFunctionDerivitive(texelFetch(uActivations,ivec2(x,0),0).x),0,1);
-				Activation = vec4(val.x*activationFunctionDerivitive(texelFetch(uActivations,ivec2(x,0),0).x),val.y,0,1);
+                Activation = vec4(val*activationFunctionDerivitive(texelFetch(uActivations,ivec2(x,0),0).x),0,1);
+				//Activation = vec4(val.x*activationFunctionDerivitive(texelFetch(uActivations,ivec2(x,0),0).x),val.y,0,1);
             }
         `);
         this.backpropWaB = createProgram(`#version 300 es
@@ -883,7 +867,7 @@ var ReconstructionAI = function(opts){
 				//val.y += target2;
 				//grad = vec4(vec2(target)-val,0,1);
 				
-                //grad = vec4(target-val.x);
+                //grad = vec4(0,((target-target2)-val.y),0,1);
                 //grad = vec4((val-target)*activationFunctionDerivitive(val));
             }
         `);
@@ -934,7 +918,7 @@ var ReconstructionAI = function(opts){
                 }
                 highp vec3 driv = activationFunctionDerivitive(texelFetch(uInptVals,xy,0).xyz);
                 Activation[0] = vec4(val*driv,1.0);
-                Activation[1] = vec4(val2,1.0);
+                Activation[1] = vec4(val2*driv,1.0);
             }
         `);
 		this.calcAddLoss = createProgram(`#version 300 es
@@ -1075,8 +1059,6 @@ var ReconstructionAI = function(opts){
             this.gl.useProgram(this.addWaB);
             this.gl.uniform1i(this.gl.getUniformLocation(this.addWaB, "uWaB"), 0);
             this.gl.uniform1i(this.gl.getUniformLocation(this.addWaB, "uWaBdelta"), 1);
-            //this.LerningRateUniformW = this.gl.getUniformLocation(this.addWaB, "uLerningRateW");
-            //this.LerningRateUniformB = this.gl.getUniformLocation(this.addWaB, "uLerningRateB");
 			this.LerningRateUniform = this.gl.getUniformLocation(this.addWaB, "uLerningRate");
             this.gl.useProgram(this.findDelta);
             this.gl.uniform1i(this.gl.getUniformLocation(this.findDelta, "uTarget"), 0);
@@ -1099,15 +1081,13 @@ var ReconstructionAI = function(opts){
             this.gl.useProgram(this.randomWaB);
             var m = this.gl.getUniformLocation(this.randomWaB,"uM");
             var uRand = this.gl.getUniformLocation(this.randomWaB,"uRand");
-			this.RandomWaBLengthUniform = this.gl.getUniformLocation(this.randomWaB, "uLayerLength");
             for (var i=0;i<this.WaBresolutions.length;i++) {
                 var res = this.WaBresolutions[i];
                 this.NumberOfParamiters += this.WaBorigResolutions[i][0]*this.WaBorigResolutions[i][1];
                 //this.gl.uniform1f(m,2/Math.sqrt(this.WaBorigHeights[i]));
 				this.gl.uniform1f(m,Math.sqrt(1/this.WaBorigHeights[i]));
-                this.gl.uniform1i(this.RandomWaBLengthUniform,this.WaBorigHeights[i]+1);
 				//this.gl.uniform1f(m,0.625/Math.sqrt(this.layers[i]));
-				//this.gl.uniform1f(m,Math.sqrt(2/this.layers[i]));
+				//this.gl.uniform1f(m,Math.sqrt(1/this.layers[i]));
 				//this.gl.uniform1i(this.RandomWaBLengthUniform,this.layers[i]+1);
 				//this.RandomWaBLengthUniform
                 //this.gl.uniform1f(m,1);
@@ -1224,9 +1204,6 @@ var ReconstructionAI = function(opts){
                 this.gl.activeTexture(this.gl.TEXTURE3);
                 this.gl.bindTexture(this.gl.TEXTURE_2D, this.activations[0][i]);
                 this.gl.uniform1i(this.BackpropWaBLayerLengthUniform, this.layers[i]);
-				//this.gl.uniform1f(this.BackpropWaBRegularzationUniform, Math.sqrt(this.WaBorigHeights[i]));
-				//this.gl.uniform1f(this.BackpropWaBRegularzationUniform, (this.layers[i]));
-				//this.BackpropWaBRegularzationUniform
                 this.gl.drawElements(this.gl.TRIANGLES, 6, this.gl.UNSIGNED_SHORT, 0);
                 this.gl.bindTexture(this.gl.TEXTURE_2D, this.WaBdelta[i]);
                 this.gl.copyTexImage2D(this.gl.TEXTURE_2D, 0, self.RGBAF, 0, 0, resol[0], resol[1], 0);
@@ -1256,7 +1233,7 @@ var ReconstructionAI = function(opts){
             this.gl.activeTexture(this.gl.TEXTURE2);
             this.gl.bindTexture(this.gl.TEXTURE_2D, this.flattenTexture);
             this.gl.activeTexture(this.gl.TEXTURE3);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.activations[0][0]);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this.activations[1][0]);
             this.gl.uniform1i(this.BackpropWaBLayerLengthUniform, this.layers[0]);
             this.gl.drawElements(this.gl.TRIANGLES, 6, this.gl.UNSIGNED_SHORT, 0);
             this.gl.bindTexture(this.gl.TEXTURE_2D, this.WaBdelta[0]);
@@ -1298,53 +1275,6 @@ var ReconstructionAI = function(opts){
             this.gl.copyTexImage2D(this.gl.TEXTURE_2D, 0, self.RGF, 0, 0, this.outputSize, 1, 0);
             this.trainGradientWithCurrentGradientAndActivations();
         }
-        this.trainWithGradientOut = function(inpw, exinp, outw) {
-            this.cycle(inpw,exinp);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.targetTextures[0]);
-            this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.R32F, this.outputSize, 1, 0, this.gl.RED, this.gl.FLOAT, outw);
-			this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.frameBuffer);
-			this.gl.scissor(0,0,this.outputSize,1);
-            this.gl.viewport(0,0,this.outputSize,1);
-			this.gl.useProgram(this.calcAddLoss);
-			this.gl.activeTexture(this.gl.TEXTURE0);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.targetTextures[0]);
-            this.gl.activeTexture(this.gl.TEXTURE1);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.activations[1][this.WaB.length-1]);
-			this.gl.activeTexture(this.gl.TEXTURE2);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.lossTexture);
-			this.gl.drawElements(this.gl.TRIANGLES, 6, this.gl.UNSIGNED_SHORT, 0);
-			this.gl.readBuffer(this.gl.COLOR_ATTACHMENT0);
-			this.gl.bindTexture(this.gl.TEXTURE_2D, this.lossTexture);
-			this.gl.copyTexImage2D(this.gl.TEXTURE_2D, 0, self.RF, 0, 0, this.outputSize, 1, 0);
-			
-            this.gl.useProgram(this.findDelta);
-			this.gl.activeTexture(this.gl.TEXTURE0);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.targetTextures[0]);
-			this.gl.activeTexture(this.gl.TEXTURE1);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.targetTextures[1]);
-            this.gl.activeTexture(this.gl.TEXTURE2);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.activations[1][this.WaB.length-1]);
-            this.gl.drawElements(this.gl.TRIANGLES, 6, this.gl.UNSIGNED_SHORT, 0);
-			this.targetTextures.reverse();
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.backpropTextures[this.backpropTextures.length-1]);
-            this.gl.copyTexImage2D(this.gl.TEXTURE_2D, 0, self.RGF, 0, 0, this.outputSize, 1, 0);
-            this.trainGradientWithCurrentGradientAndActivations();
-            this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.unflattenframeBuffer);
-            this.gl.useProgram(this.backpropUnflatten);
-            var resol = this.inpShape;
-            this.gl.scissor(0,0,resol[0],resol[1]);
-            this.gl.viewport(0,0,resol[0],resol[1]);
-            this.gl.activeTexture(this.gl.TEXTURE0);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.WaB[0]);
-            this.gl.activeTexture(this.gl.TEXTURE1);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.backpropTextures[0]);
-            this.gl.activeTexture(this.gl.TEXTURE2);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, inpw);
-            this.gl.uniform1i(this.BackpropUnflattenLayerLengthUniform, this.layers[1]);
-            this.gl.uniform2iv(this.BackpropUnflattenDimsUniform, resol);
-            this.gl.drawElements(this.gl.TRIANGLES, 6, this.gl.UNSIGNED_SHORT, 0);
-            return [this.unflattenTexture0,this.unflattenTexture1];
-        }
         this.trainCurrentWithGradientOut = function(inpw, outw) {
             this.gl.bindTexture(this.gl.TEXTURE_2D, this.targetTextures[0]);
             this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.R32F, this.outputSize, 1, 0, this.gl.RED, this.gl.FLOAT, outw);
@@ -1374,7 +1304,6 @@ var ReconstructionAI = function(opts){
             this.gl.bindTexture(this.gl.TEXTURE_2D, this.backpropTextures[this.backpropTextures.length-1]);
             this.gl.copyTexImage2D(this.gl.TEXTURE_2D, 0, self.RGF, 0, 0, this.outputSize, 1, 0);
 			//console.log(this.textureToArray2D(this.backpropTextures[this.backpropTextures.length-1],[this.outputSize,1]));
-			this.targetTextures.reverse();
             this.trainGradientWithCurrentGradientAndActivations();
             this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.unflattenframeBuffer);
             this.gl.useProgram(this.backpropUnflatten);
@@ -1390,6 +1319,7 @@ var ReconstructionAI = function(opts){
             this.gl.uniform1i(this.BackpropUnflattenLayerLengthUniform, this.layers[1]);
             this.gl.uniform2iv(this.BackpropUnflattenDimsUniform, resol);
             this.gl.drawElements(this.gl.TRIANGLES, 6, this.gl.UNSIGNED_SHORT, 0);
+			this.targetTextures.reverse();
             return [this.unflattenTexture0,this.unflattenTexture1];
         }
 		this.ReinforceTrainWithGradientOut = function(inpw, PositiveEnforcement) {
@@ -1555,17 +1485,8 @@ var ReconstructionAI = function(opts){
         }
     }
     this.train = function(inpw, exinp, outw, returnloss) {
-        this.rcnn.cycle(inpw);
-        var grad = this.rnn.trainWithGradientOut(this.rcnn.activations[1][this.rcnn.activations[1].length-1][0],exinp,outw);
-        this.rcnn.trainGradientWithCurrentActivations(grad);
-        if (returnloss) {
-            var AIout = this.rnn.textureToArray1D(this.rnn.activations[1][this.rnn.layers.length-2],[this.rnn.layers[this.rnn.layers.length-1],1]);
-            // var loss = AIout.map(function(x,i) {x -= outw[i]; return x*x;}).reduce(function(a,b) {return a+b;})/(this.rnn.outputSize*2);
-            // var loss = AIout.map(function(x,i) {x -= outw[i]; return Math.abs(x);}).reduce(function(a,b) {return a+b;})/(this.rnn.outputSize*2);
-            var loss = Math.sqrt(AIout.map(function(x,i) {x -= outw[i]; return x*x;}).reduce(function(a,b) {return a+b;})/(this.rnn.outputSize*2));
-            // return {Output:AIout,Loss:loss};
-            return {Output:AIout,loss:loss};
-        }
+        self.cycle(inpw,exinp);
+        return self.trainCurrent(outw, returnloss);
     }
     //trainCurrentWithGradientOut
     this.trainCurrent = function(outw, returnloss) {
@@ -1574,8 +1495,8 @@ var ReconstructionAI = function(opts){
         if (returnloss) {
             var AIout = this.rnn.textureToArray1D(this.rnn.activations[1][this.rnn.layers.length-2],[this.rnn.layers[this.rnn.layers.length-1],1]);
             // var loss = AIout.map(function(x,i) {x -= outw[i]; return x*x;}).reduce(function(a,b) {return a+b;})/(this.rnn.outputSize*2);
-            // var loss = AIout.map(function(x,i) {x -= outw[i]; return Math.abs(x);}).reduce(function(a,b) {return a+b;})/(this.rnn.outputSize*2);
-            var loss = Math.sqrt(AIout.map(function(x,i) {x -= outw[i]; return x*x;}).reduce(function(a,b) {return a+b;})/(this.rnn.outputSize*2));
+             var loss = AIout.map(function(x,i) {x -= outw[i]; return Math.abs(x);}).reduce(function(a,b) {return a+b;})/(this.rnn.outputSize);
+            //var loss = Math.sqrt(AIout.map(function(x,i) {x -= outw[i]; return x*x;}).reduce(function(a,b) {return a+b;})/(this.rnn.outputSize));
             // return {Output:AIout,Loss:loss};
             return {Output:AIout,loss:loss};
         }
